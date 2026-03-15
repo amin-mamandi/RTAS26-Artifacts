@@ -22,7 +22,7 @@ apt-get install gnuplot
 
 ## DRAM Address Mapping
 
-Please refer to the [drama-pp README](./drama-pp/README.md) for DRAM address mapping instructions.
+Please refer to the [drama-pp README]([./drama-pp/README.md](https://github.com/CSL-KU/drama-pp/blob/a0858ddd7f6f0d055e76a609b4293d6367ea87e2/README.md)) for DRAM address mapping instructions.
 After generating `map.txt`, copy it into `IsolBench/bench/`.
 
 ## Reproducing Results
