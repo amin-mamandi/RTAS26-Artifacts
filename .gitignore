@@ -1,0 +1,13 @@
+*.log
+*.pdf
+*.csv
+matmult-allbanks-results
+sdvbs-allbanks-results
+matmult-onebank-results
+sdvbs-onebank-results
+figure2/synthetic-logs
+figure2/*.csv
+figure1/*.txt
+figure1/*.dat
+drama-pp/re/set*.txt
+drama-pp/re/map.txt

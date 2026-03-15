@@ -1,0 +1,18 @@
+[submodule "sd-vbs"]
+	path = sd-vbs
+	url = https://github.com/amin-mamandi/sd-vbs.git
+	branch = noCycles
+
+[submodule "matmult"]
+	path = matmult
+	url = https://github.com/heechul/matmult.git
+
+[submodule "IsolBench"]
+	path = IsolBench
+	url = https://github.com/amin-mamandi/IsolBench.git
+	branch = dev
+
+[submodule "drama-pp"]
+	path = drama-pp
+	url = https://github.com/CSL-KU/drama-pp
+	branch = master
