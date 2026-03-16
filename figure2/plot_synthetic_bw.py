@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Plot bandwidth bars from syntetic-data.csv."""
+"""Plot bandwidth bars from synthetic-data.csv."""
 
 from __future__ import annotations
 
 import argparse
+import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -21,13 +22,13 @@ plt.rcParams.update({
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate bandwidth_plot.pdf from syntetic-data.csv"
+        description="Generate bandwidth_plot.pdf from synthetic-data.csv"
     )
     parser.add_argument(
         "-i",
         "--input",
-        default="syntetic-data.csv",
-        help="Input file (default: syntetic-data.csv)",
+        default="synthetic-data.csv",
+        help="Input file (default: synthetic-data.csv)",
     )
     parser.add_argument(
         "-o",
@@ -35,21 +36,47 @@ def parse_args() -> argparse.Namespace:
         default="bandwidth_plot.pdf",
         help="Output PDF path (default: bandwidth_plot.pdf)",
     )
+    parser.add_argument(
+        "--err",
+        action="store_true",
+        help="Enable red error bars",
+    )
     return parser.parse_args()
 
 
-def read_rows(path: Path) -> list[tuple[str, list[float]]]:
+def read_rows(path: Path) -> list[dict[str, float | str]]:
     with path.open("r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-    if not lines:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    if not rows:
         raise SystemExit(f"No data rows found in {path}")
-    rows: list[tuple[str, list[float]]] = []
-    for line in lines:
-        fields = line.split()
-        if len(fields) < 17:
-            raise SystemExit(f"Expected >= 17 columns, got {len(fields)} in line: {line}")
-        rows.append((fields[0], [float(v) for v in fields[1:17]]))
-    return rows
+    required = [
+        "device",
+        "ABr_bw", "ABw_bw", "SBr_bw", "SBw_bw",
+        "ABr_bw_min", "ABr_bw_max", "ABw_bw_min", "ABw_bw_max",
+        "SBr_bw_min", "SBr_bw_max", "SBw_bw_min", "SBw_bw_max",
+    ]
+    missing = [name for name in required if name not in (reader.fieldnames or [])]
+    if missing:
+        raise SystemExit(f"Missing required columns in {path}: {', '.join(missing)}")
+    parsed_rows: list[dict[str, float | str]] = []
+    for row in rows:
+        parsed_rows.append({
+            "device": row["device"],
+            "ABr_bw": float(row["ABr_bw"]),
+            "ABw_bw": float(row["ABw_bw"]),
+            "SBr_bw": float(row["SBr_bw"]),
+            "SBw_bw": float(row["SBw_bw"]),
+            "ABr_bw_min": float(row["ABr_bw_min"]),
+            "ABr_bw_max": float(row["ABr_bw_max"]),
+            "ABw_bw_min": float(row["ABw_bw_min"]),
+            "ABw_bw_max": float(row["ABw_bw_max"]),
+            "SBr_bw_min": float(row["SBr_bw_min"]),
+            "SBr_bw_max": float(row["SBr_bw_max"]),
+            "SBw_bw_min": float(row["SBw_bw_min"]),
+            "SBw_bw_max": float(row["SBw_bw_max"]),
+        })
+    return parsed_rows
 
 
 def main() -> None:
@@ -71,8 +98,12 @@ def main() -> None:
         {"facecolor": "#BDBDBD", "edgecolor": "black", "hatch": ""},     # SBr
         {"facecolor": "black", "edgecolor": "black", "hatch": ""},       # SBw
     ]
-    for dev_idx, (device, vals) in enumerate(rows):
-        y = vals[0:4]
+    for dev_idx, row in enumerate(rows):
+        y = [row["ABr_bw"], row["ABw_bw"], row["SBr_bw"], row["SBw_bw"]]
+        mins = [row["ABr_bw_min"], row["ABw_bw_min"], row["SBr_bw_min"], row["SBw_bw_min"]]
+        maxs = [row["ABr_bw_max"], row["ABw_bw_max"], row["SBr_bw_max"], row["SBw_bw_max"]]
+        yerr_lower = [max(0.0, v - lo) for v, lo in zip(y, mins)]
+        yerr_upper = [max(0.0, hi - v) for v, hi in zip(y, maxs)]
         for i in range(4):
             x = device_positions[dev_idx] + offsets[i]
             ax.bar(
@@ -98,10 +129,23 @@ def main() -> None:
                     zorder=3.2,
                 )
             )
+            if args.err:
+                ax.errorbar(
+                    x,
+                    y[i],
+                    yerr=[[yerr_lower[i]], [yerr_upper[i]]],
+                    fmt="none",
+                    ecolor="red",
+                    elinewidth=0.6,
+                    capsize=4.5,
+                    capthick=0.7,
+                    zorder=4,
+                )
 
     ax.set_xlim(-0.6, len(rows) - 0.4)
     pretty_labels = []
-    for device, _ in rows:
+    for row in rows:
+        device = str(row["device"])
         pretty_labels.append(
             {"pi4": "Pi 4", "pi5": "Pi 5", "intel": "Intel", "agx": "AGX", "nano": "Nano"}.get(
                 device.lower(), device
