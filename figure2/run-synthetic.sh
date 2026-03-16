@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CORES=(1 2 3)
 VICTIM_TIME=20  # seconds to run victim for (should be long enough to get stable bandwidth but not too long to make the whole process take forever)
 DEVICE="intel"
-N_RUNS=1
+N_RUNS=3
 ATT_MEM_ALL=2048  # MB per attacker when attacking all banks
 ATT_MEM_SINGLE=2048  # MB per attacker when attacking single bank (can be same as above if you don't want to adjust)
 OUTDIR="synthetic-logs"
@@ -56,6 +56,21 @@ calc_stats() {
 
     rm -f "$tmp"
     printf "%s %s %s" "$median" "$mean" "$std"
+}
+
+calc_min_max() {
+    # Args: list of numeric values
+    # Output: "min max"
+    printf "%s\n" "$@" | awk '
+        NR==1 { min=max=$1 }
+        { if ($1 < min) min=$1; if ($1 > max) max=$1 }
+        END {
+            if (NR == 0) {
+                printf "0.000000 0.000000"
+            } else {
+                printf "%.6f %.6f", min, max
+            }
+        }'
 }
 
 # Run baseline N times
@@ -151,6 +166,7 @@ for bank in all single; do
 
         read -r att_med att_mean att_std <<<"$(calc_stats "${scenario_att_vals[@]}")"
         read -r vic_med vic_mean vic_std <<<"$(calc_stats "${scenario_victim_vals[@]}")"
+        read -r att_min att_max <<<"$(calc_min_max "${scenario_att_vals[@]}")"
 
         # Store for legacy one-line output AND save victim arrays for slowdown calculation
         if [ "$bank" = "all" ]; then
@@ -160,12 +176,16 @@ for bank in all single; do
                 ABr_victim_vals=("${scenario_victim_vals[@]}")
                 ABr_att_stats="$att_med $att_mean $att_std"
                 ABr_vic_stats="$vic_med $vic_mean $vic_std"
+                ABr_bw_min=$att_min
+                ABr_bw_max=$att_max
             else
                 ABw_bw=$att_med
                 ABw_victim=$vic_med
                 ABw_victim_vals=("${scenario_victim_vals[@]}")
                 ABw_att_stats="$att_med $att_mean $att_std"
                 ABw_vic_stats="$vic_med $vic_mean $vic_std"
+                ABw_bw_min=$att_min
+                ABw_bw_max=$att_max
             fi
         else
             if [ "$atype" = "read" ]; then
@@ -174,12 +194,16 @@ for bank in all single; do
                 SBr_victim_vals=("${scenario_victim_vals[@]}")
                 SBr_att_stats="$att_med $att_mean $att_std"
                 SBr_vic_stats="$vic_med $vic_mean $vic_std"
+                SBr_bw_min=$att_min
+                SBr_bw_max=$att_max
             else
                 SBw_bw=$att_med
                 SBw_victim=$vic_med
                 SBw_victim_vals=("${scenario_victim_vals[@]}")
                 SBw_att_stats="$att_med $att_mean $att_std"
                 SBw_vic_stats="$vic_med $vic_mean $vic_std"
+                SBw_bw_min=$att_min
+                SBw_bw_max=$att_max
             fi
         fi
     done
@@ -215,28 +239,28 @@ ABw_sd_stats="$ABw_sd_med $ABw_sd_mean $ABw_sd_std"
 SBr_sd_stats="$SBr_sd_med $SBr_sd_mean $SBr_sd_std"
 SBw_sd_stats="$SBw_sd_med $SBw_sd_mean $SBw_sd_std"
 
-# Write summary with slowdown min/max in columns 10-17
-cat > "syntetic-data.csv" <<EOF
-# device ABr_bw ABw_bw SBr_bw SBw_bw ABr_sd ABw_sd SBr_sd SBw_sd ABr_sd_min ABr_sd_max ABw_sd_min ABw_sd_max SBr_sd_min SBr_sd_max SBw_sd_min SBw_sd_max
-$DEVICE $ABr_bw $ABw_bw $SBr_bw $SBw_bw $ABr_sd $ABw_sd $SBr_sd $SBw_sd $ABr_sd_min $ABr_sd_max $ABw_sd_min $ABw_sd_max $SBr_sd_min $SBr_sd_max $SBw_sd_min $SBw_sd_max
+# Write summary with explicit CSV columns for bandwidth and slowdown min/max.
+cat > "synthetic-data.csv" <<EOF
+device,ABr_bw,ABw_bw,SBr_bw,SBw_bw,ABr_bw_min,ABr_bw_max,ABw_bw_min,ABw_bw_max,SBr_bw_min,SBr_bw_max,SBw_bw_min,SBw_bw_max,ABr_sd,ABw_sd,SBr_sd,SBw_sd,ABr_sd_min,ABr_sd_max,ABw_sd_min,ABw_sd_max,SBr_sd_min,SBr_sd_max,SBw_sd_min,SBw_sd_max
+$DEVICE,$ABr_bw,$ABw_bw,$SBr_bw,$SBw_bw,$ABr_bw_min,$ABr_bw_max,$ABw_bw_min,$ABw_bw_max,$SBr_bw_min,$SBr_bw_max,$SBw_bw_min,$SBw_bw_max,$ABr_sd,$ABw_sd,$SBr_sd,$SBw_sd,$ABr_sd_min,$ABr_sd_max,$ABw_sd_min,$ABw_sd_max,$SBr_sd_min,$SBr_sd_max,$SBw_sd_min,$SBw_sd_max
 EOF
 
 # Write stats summary in a separate file
 cat > "synthetic-stats.csv" <<EOF
-device metric median mean std
-$DEVICE baseline_bw $baseline_med $baseline_mean $baseline_std
-$DEVICE ABr_attack_bw $ABr_att_stats
-$DEVICE ABr_victim_bw $ABr_vic_stats
-$DEVICE ABr_slowdown $ABr_sd_stats
-$DEVICE ABw_attack_bw $ABw_att_stats
-$DEVICE ABw_victim_bw $ABw_vic_stats
-$DEVICE ABw_slowdown $ABw_sd_stats
-$DEVICE SBr_attack_bw $SBr_att_stats
-$DEVICE SBr_victim_bw $SBr_vic_stats
-$DEVICE SBr_slowdown $SBr_sd_stats
-$DEVICE SBw_attack_bw $SBw_att_stats
-$DEVICE SBw_victim_bw $SBw_vic_stats
-$DEVICE SBw_slowdown $SBw_sd_stats
+device,metric,median,mean,std
+$DEVICE,baseline_bw,$baseline_med,$baseline_mean,$baseline_std
+$DEVICE,ABr_attack_bw,${ABr_att_stats// /,}
+$DEVICE,ABr_victim_bw,${ABr_vic_stats// /,}
+$DEVICE,ABr_slowdown,${ABr_sd_stats// /,}
+$DEVICE,ABw_attack_bw,${ABw_att_stats// /,}
+$DEVICE,ABw_victim_bw,${ABw_vic_stats// /,}
+$DEVICE,ABw_slowdown,${ABw_sd_stats// /,}
+$DEVICE,SBr_attack_bw,${SBr_att_stats// /,}
+$DEVICE,SBr_victim_bw,${SBr_vic_stats// /,}
+$DEVICE,SBr_slowdown,${SBr_sd_stats// /,}
+$DEVICE,SBw_attack_bw,${SBw_att_stats// /,}
+$DEVICE,SBw_victim_bw,${SBw_vic_stats// /,}
+$DEVICE,SBw_slowdown,${SBw_sd_stats// /,}
 EOF
 
-echo "Done. Results in syntetic-data.csv and synthetic-stats.csv"
+echo "Done. Results in synthetic-data.csv and synthetic-stats.csv"
