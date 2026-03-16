@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Plot slowdown bars with red error bars from syntetic-data.csv."""
+"""Plot slowdown bars with red error bars from synthetic-data.csv."""
 
 from __future__ import annotations
 
 import argparse
+import csv
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -21,13 +22,13 @@ plt.rcParams.update({
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate slowdown_plot.pdf from syntetic-data.csv"
+        description="Generate slowdown_plot.pdf from synthetic-data.csv"
     )
     parser.add_argument(
         "-i",
         "--input",
-        default="syntetic-data.csv",
-        help="Input file (default: syntetic-data.csv)",
+        default="synthetic-data.csv",
+        help="Input file (default: synthetic-data.csv)",
     )
     parser.add_argument(
         "-o",
@@ -43,18 +44,39 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def read_rows(path: Path) -> list[tuple[str, list[float]]]:
+def read_rows(path: Path) -> list[dict[str, float | str]]:
     with path.open("r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-    if not lines:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    if not rows:
         raise SystemExit(f"No data rows found in {path}")
-    rows: list[tuple[str, list[float]]] = []
-    for line in lines:
-        fields = line.split()
-        if len(fields) < 17:
-            raise SystemExit(f"Expected >= 17 columns, got {len(fields)} in line: {line}")
-        rows.append((fields[0], [float(v) for v in fields[1:17]]))
-    return rows
+    required = [
+        "device",
+        "ABr_sd", "ABw_sd", "SBr_sd", "SBw_sd",
+        "ABr_sd_min", "ABr_sd_max", "ABw_sd_min", "ABw_sd_max",
+        "SBr_sd_min", "SBr_sd_max", "SBw_sd_min", "SBw_sd_max",
+    ]
+    missing = [name for name in required if name not in (reader.fieldnames or [])]
+    if missing:
+        raise SystemExit(f"Missing required columns in {path}: {', '.join(missing)}")
+    parsed_rows: list[dict[str, float | str]] = []
+    for row in rows:
+        parsed_rows.append({
+            "device": row["device"],
+            "ABr_sd": float(row["ABr_sd"]),
+            "ABw_sd": float(row["ABw_sd"]),
+            "SBr_sd": float(row["SBr_sd"]),
+            "SBw_sd": float(row["SBw_sd"]),
+            "ABr_sd_min": float(row["ABr_sd_min"]),
+            "ABr_sd_max": float(row["ABr_sd_max"]),
+            "ABw_sd_min": float(row["ABw_sd_min"]),
+            "ABw_sd_max": float(row["ABw_sd_max"]),
+            "SBr_sd_min": float(row["SBr_sd_min"]),
+            "SBr_sd_max": float(row["SBr_sd_max"]),
+            "SBw_sd_min": float(row["SBw_sd_min"]),
+            "SBw_sd_max": float(row["SBw_sd_max"]),
+        })
+    return parsed_rows
 
 
 def main() -> None:
@@ -76,10 +98,10 @@ def main() -> None:
         {"facecolor": "#BDBDBD", "edgecolor": "black", "hatch": ""},     # SBr
         {"facecolor": "black", "edgecolor": "black", "hatch": ""},       # SBw
     ]
-    for dev_idx, (device, vals) in enumerate(rows):
-        y = vals[4:8]
-        mins = [vals[8], vals[10], vals[12], vals[14]]
-        maxs = [vals[9], vals[11], vals[13], vals[15]]
+    for dev_idx, row in enumerate(rows):
+        y = [row["ABr_sd"], row["ABw_sd"], row["SBr_sd"], row["SBw_sd"]]
+        mins = [row["ABr_sd_min"], row["ABw_sd_min"], row["SBr_sd_min"], row["SBw_sd_min"]]
+        maxs = [row["ABr_sd_max"], row["ABw_sd_max"], row["SBr_sd_max"], row["SBw_sd_max"]]
         # Guard against tiny rounding mismatches in input summaries.
         yerr_lower = [max(0.0, v - lo) for v, lo in zip(y, mins)]
         yerr_upper = [max(0.0, hi - v) for v, hi in zip(y, maxs)]
@@ -124,7 +146,8 @@ def main() -> None:
 
     ax.set_xlim(-0.6, len(rows) - 0.4)
     pretty_labels = []
-    for device, _ in rows:
+    for row in rows:
+        device = str(row["device"])
         pretty_labels.append(
             {"pi4": "Pi 4", "pi5": "Pi 5", "intel": "Intel", "agx": "AGX", "nano": "Nano"}.get(
                 device.lower(), device
@@ -133,7 +156,6 @@ def main() -> None:
     ax.set_xticks(device_positions)
     ax.set_xticklabels(pretty_labels)
     ax.set_ylabel("Slowdown")
-    # ymax = max(max(vals[4:8]) for _, vals in rows)
     ymax = 100
     ax.set_ylim(0, ymax)
 
