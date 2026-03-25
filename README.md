@@ -27,35 +27,43 @@ After generating `map.txt`, copy it into `IsolBench/bench/`.
 
 ## Reproducing Results
 
+Run the setup command with `sudo`.
+
 ```bash
 git clone --recurse-submodules https://github.com/amin-mamandi/RTAS26-Artifacts
 cd RTAS26-Artifacts
-./setupBoard.sh  # requires sudo
+sudo ./setupBoard.sh
 ```
 
 ### Figure 1: MLP Experiments
 
+Run the experiment command with `sudo`.
+
 ```bash
 cd figure1
-./mlptest.sh <maxmlp> <corun>
+sudo ./mlptest.sh <maxmlp> <corun>
 gnuplot plot-mlp.gp
 ```
 
 ### Figure 2: Synthetic Benchmark Experiments
 
+Run the benchmark command with `sudo`.
+
 ```bash
 cd figure2
-./run-synthetic.sh
+sudo ./run-synthetic.sh
 python3 plot_synthetic_sd.py [--err]
 python3 plot_synthetic_bw.py
 ```
 
 ### Figure 3: Real-World Workload Experiments
 
+Run the attack scripts with `sudo`. Use `<benchmark>` as either `sdvbs` or `matmult`.
+
 ```bash
 cd figure3
-./all-banks-attack.sh sdvbs   # or matmult
-./single-bank-attack.sh sdvbs # or matmult
+sudo ./all-banks-attack.sh <benchmark>
+sudo ./single-bank-attack.sh <benchmark>
 python3 extract-data.py
 gnuplot plot-slowdown.gp
 ```

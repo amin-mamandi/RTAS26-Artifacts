@@ -65,7 +65,7 @@ fi
 # --- Build IsolBench ---
 if [[ -d "$ISOLBENCH_DIR" ]]; then
     info "Building IsolBench..."
-    (cd "$ISOLBENCH_DIR" && git checkout dev || true)
+    (cd "$ISOLBENCH_DIR" || true)
 
     if [[ -d "$ISOLBENCH_DIR/IsolBench/bench" ]]; then
         make -C "$ISOLBENCH_DIR/IsolBench/bench"

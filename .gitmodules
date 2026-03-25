@@ -5,14 +5,15 @@
 
 [submodule "matmult"]
 	path = matmult
-	url = https://github.com/heechul/matmult.git
+	url = https://github.com/CSL-KU/matmult.git
+	branch = main
 
 [submodule "IsolBench"]
 	path = IsolBench
-	url = https://github.com/amin-mamandi/IsolBench.git
-	branch = dev
+	url = https://github.com/CSL-KU/IsolBench.git
+	branch = master
 
 [submodule "drama-pp"]
 	path = drama-pp
-	url = https://github.com/CSL-KU/drama-pp
+	url = https://github.com/CSL-KU/drama-pp.git
 	branch = master
