@@ -135,10 +135,10 @@ def main() -> None:
                     y[i],
                     yerr=[[yerr_lower[i]], [yerr_upper[i]]],
                     fmt="none",
-                    ecolor="red",
+                    ecolor="lightblue",
                     elinewidth=0.6,
-                    capsize=4.5,
-                    capthick=0.7,
+                    capsize=1.2,
+                    capthick=0.4,
                     zorder=4,
                 )
 
