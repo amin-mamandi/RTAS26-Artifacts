@@ -1,7 +1,7 @@
 [submodule "sd-vbs"]
 	path = sd-vbs
 	url = https://github.com/amin-mamandi/sd-vbs.git
-	branch = noCycles
+	branch = main
 
 [submodule "matmult"]
 	path = matmult

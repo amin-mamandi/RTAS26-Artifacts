@@ -34,6 +34,14 @@ else
     warn "No .gitmodules file found. Are you in the repository root?"
 fi
 
+#--- Select SD-VBS branch ---
+if [[ -d "$SD_VBS_DIR/.git" || -d "$SD_VBS_DIR" ]]; then
+    info "Updating sd-vbs submodule to branch main..."
+    git submodule update --init --recursive --remote sd-vbs || warn "Failed to update sd-vbs submodule"
+else
+    warn "$SD_VBS_DIR not found"
+fi
+
 # --- Build matmult ---
 if [[ -d "$MATMULT_DIR" ]]; then
     info "Building matmult..."
