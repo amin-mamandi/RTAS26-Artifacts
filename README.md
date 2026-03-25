@@ -37,7 +37,10 @@ sudo ./setupBoard.sh
 
 ### Figure 1: MLP Experiments
 
-Run the experiment command with `sudo`.
+Run the experiment with `sudo`. For the paper results, use `<corun>` as `0` or `3`:
+- `0`: one `pll` process
+- `3`: four concurrent `pll` processes total
+
 
 ```bash
 cd figure1
