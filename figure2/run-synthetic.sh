@@ -9,8 +9,7 @@ CORES=(1 2 3)
 VICTIM_TIME=20  # seconds to run victim for (should be long enough to get stable bandwidth but not too long to make the whole process take forever)
 DEVICE="intel"
 N_RUNS=3
-ATT_MEM_ALL=2048  # MB per attacker when attacking all banks
-ATT_MEM_SINGLE=2048  # MB per attacker when attacking single bank (can be same as above if you don't want to adjust)
+memsize=2048 # in MB (you can adjust this based on your system's hugepage size and availability)
 OUTDIR="synthetic-logs"
 mkdir -p "$OUTDIR"
 
@@ -111,8 +110,8 @@ for bank in all single; do
             echo "  run $r: starting attackers..."
             pids=""
             logs=""
-            att_mem="$ATT_MEM_ALL"
-            [ "$bank" = "single" ] && att_mem="$ATT_MEM_SINGLE"
+            att_mem="$memsize"
+            [ "$bank" = "single" ] && att_mem="$memsize"
             for c in "${CORES[@]}"; do
                 logfile="$OUTDIR/att_${c}.log"
                 if [ "$bank" = "single" ]; then

@@ -80,16 +80,27 @@ fi
 
 # --- Set hugepages ---
 info "Setting hugepages..."
-HUGEPAGE_KB=$(awk '/Hugepagesize:/ {print $2}' /proc/meminfo)
-if [[ -n "$HUGEPAGE_KB" ]]; then
-    NUM_HUGEPAGES=$((4194304 / HUGEPAGE_KB))  # 4 GB total
-    echo "$NUM_HUGEPAGES" | sudo tee /proc/sys/vm/nr_hugepages >/dev/null
-    sudo mkdir -p /dev/hugepages
-    mountpoint -q /dev/hugepages || sudo mount -t hugetlbfs nodev /dev/hugepages
-    info "hugepages configured: ${NUM_HUGEPAGES} pages (${HUGEPAGE_KB} KB each)"
-else
-    warn "Could not determine hugepage size; skipping hugepage setup"
-fi
+read _ HUGEPAGE_KB _ < <(grep 'Hugepagesize:' /proc/meminfo)
+read _ MEMTOTAL_KB _  < <(grep 'MemTotal:'     /proc/meminfo)
+
+DESIRED_KB=$(( MEMTOTAL_KB/2 < 8*1024*1024 ? MEMTOTAL_KB/2 : 8*1024*1024 ))
+NUM_HUGEPAGES=$(( DESIRED_KB / HUGEPAGE_KB ))
+
+# Zero out all other hugepage sizes
+for dir in /sys/kernel/mm/hugepages/hugepages-* \
+           /sys/devices/system/node/node*/hugepages/hugepages-*; do
+    [[ -d "$dir" && "$dir" != *"hugepages-${HUGEPAGE_KB}kB" && -w "$dir/nr_hugepages" ]] &&
+        echo 0 | sudo tee "$dir/nr_hugepages" >/dev/null
+done
+
+echo "$NUM_HUGEPAGES" | sudo tee /proc/sys/vm/nr_hugepages >/dev/null
+sudo mkdir -p /dev/hugepages
+mountpoint -q /dev/hugepages || sudo mount -t hugetlbfs nodev /dev/hugepages
+
+MEMSIZE_MB=$(( NUM_HUGEPAGES * HUGEPAGE_KB / 1024 / 4 ))
+while IFS= read -r -d '' script; do
+    sed -i "s/^memsize=.*/memsize=${MEMSIZE_MB}/" "$script"
+done < <(find "$CUR_DIR" -type f -name '*.sh' -print0)
 
 # --- CPU tuning ---
 info "Setting CPU to max performance..."

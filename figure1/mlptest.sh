@@ -15,7 +15,7 @@ MAP_FILE="$REPO_ROOT/IsolBench/bench/map.txt"
 
 mlp=$1
 corun=$2
-memsize=512 # in MB (you can adjust this based on your system's hugepage size and availability)
+memsize=2048 # in MB (you can adjust this based on your system's hugepage size and availability)
 
 echoerr() { echo "$@" 1>&2; }
 

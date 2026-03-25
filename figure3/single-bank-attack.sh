@@ -14,6 +14,7 @@ ATTACKER_COUNT=3
 # cores to use for attackers
 ATTACKER_CORES=(1 2 3)
 RUNS_PER_CASE=3
+memsize=2048 # in MB (you can adjust this based on your system's hugepage size and availability)
 
 WORKLOADS=("disparity" "mser" "sift" "stitch" "tracking")
 
@@ -26,7 +27,7 @@ run_attackers() {
         core=${ATTACKER_CORES[$idx]:-$(($idx + 1))}
         log="$test_dir/log-${attk}-attack-core${core}.log"
         # start attacker in background; adjust 'pll' args if needed
-        pll -f "$MAP_FILE" -c "$core" -l 16 -m 512 -i 1000000000 -a "$attk" -u 64 -e 0 >& "$log" &
+        pll -f "$MAP_FILE" -c "$core" -l 16 -m "$memsize" -i 1000000000 -a "$attk" -u 64 -e 0 >& "$log" &
         pid=$!
         attacker_pids+=("$pid")
         echo "Started attacker on core $core with PID: $pid (log: $log)"
